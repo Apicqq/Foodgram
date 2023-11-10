@@ -1,8 +1,6 @@
 from django.contrib.auth import get_user_model
 from django.db import models
 
-from recipes.models import Recipe
-
 User = get_user_model()
 
 class BaseUserRecipeModel(models.Model):
@@ -12,7 +10,7 @@ class BaseUserRecipeModel(models.Model):
         verbose_name='Пользователь',
     )
     recipe = models.ForeignKey(
-        Recipe,
+        'Recipe',
         on_delete=models.CASCADE,
         verbose_name='Рецепт',
     )

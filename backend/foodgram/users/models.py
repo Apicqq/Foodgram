@@ -6,17 +6,12 @@ from .validators import validate_username
 
 
 class User(AbstractUser):
-    email = models.EmailField(
-        max_length=254,
-        unique=True,
-        verbose_name='Адрес электронной почты',
-        help_text='Адрес электронной почты',
-    ),
     username = models.CharField(
+        'Имя пользователя',
         max_length=150,
         unique=True,
-        verbose_name='Имя пользователя',
-        help_text='Имя пользователя',
+        blank=False,
+        null=False,
         validators=(
             RegexValidator(
                 regex=r'^[\w.@+-]+$',
@@ -24,6 +19,16 @@ class User(AbstractUser):
             ),
             validate_username
         ),
+        )
+    email = models.EmailField(
+        max_length=254,
+        unique=True,
+        verbose_name='Адрес электронной почты',
+        help_text='Адрес электронной почты',
+        error_messages={
+            'unique': 'Пользователь с таким адресом'
+                      ' электронной почты уже существует.',
+        }
     ),
     first_name = models.CharField(
         max_length=150,
@@ -52,13 +57,13 @@ class User(AbstractUser):
 
 class Subscription(models.Model):
     user = models.ForeignKey(
-        User,
+        'User',
         on_delete=models.CASCADE,
         related_name='follower',
         verbose_name='Подписчик',
     )
     author = models.ForeignKey(
-        User,
+        'User',
         on_delete=models.CASCADE,
         related_name='following',
         verbose_name='Автор',

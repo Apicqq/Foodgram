@@ -7,7 +7,9 @@ class Tag(models.Model):
     name = models.CharField(
         'Название тэга',
         max_length=200,
-        unique=True
+        unique=True,
+        blank=False,
+        null=False
     ),
     color = models.CharField(
         'Цвет тэга',
@@ -55,12 +57,19 @@ class Recipe(models.Model):
     name = models.CharField(
         'Название рецепта',
         max_length=200,
+        blank=False,
+        null=False
     ),
     text = models.CharField(
         'Описание рецепта',
+        max_length=30000,
+        blank=False,
+        null=False
     ),
     cooking_time = models.PositiveSmallIntegerField(
         'Время приготовления в минутах',
+        blank=False,
+        null=False,
         validators=[
             MinValueValidator(
                 1, 'Время приготовления должно быть '
