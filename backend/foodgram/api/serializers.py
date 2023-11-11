@@ -2,7 +2,7 @@ from django.contrib.auth import get_user_model
 from djoser.serializers import UserSerializer
 from rest_framework.serializers import ModelSerializer
 
-from recipes.models import Ingredient
+from recipes.models import Ingredient, Recipe, Tag
 
 User = get_user_model()
 
@@ -27,5 +27,14 @@ class IngredientSerializer(ModelSerializer):
         fields = '__all__'
 
 
+
 class RecipeSerializer(ModelSerializer):
-    pass
+    class Meta:
+        model = Recipe
+        fields = '__all__'
+
+
+class TagSerializer(ModelSerializer):
+    class Meta:
+        model = Tag
+        fields = '__all__'
