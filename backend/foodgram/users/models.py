@@ -18,7 +18,7 @@ class User(AbstractUser):
                 message='Имя пользователя содержит недопустимые символы.',
             ),
             validate_username
-        ),
+        )
         )
     email = models.EmailField(
         max_length=254,
@@ -29,17 +29,17 @@ class User(AbstractUser):
             'unique': 'Пользователь с таким адресом'
                       ' электронной почты уже существует.',
         }
-    ),
+    )
     first_name = models.CharField(
         max_length=150,
         verbose_name='Имя',
         help_text='Имя',
-    ),
+    )
     last_name = models.CharField(
         max_length=150,
         verbose_name='Фамилия',
         help_text='Фамилия',
-    ),
+    )
     password = models.CharField(
         max_length=150,
         verbose_name='Пароль',
