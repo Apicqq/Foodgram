@@ -24,6 +24,12 @@ class UserGetSerializer(UserSerializer):
         fields = ('username', 'email', 'first_name', 'last_name')
 
 
+class IngredientSerializer(ModelSerializer):
+    class Meta:
+        model = Ingredient
+        fields = '__all__'
+
+
 class TagSerializer(ModelSerializer):
     class Meta:
         model = Tag
@@ -31,11 +37,11 @@ class TagSerializer(ModelSerializer):
 
 
 class IngredientGetSerializer(ModelSerializer):
-
     id = IntegerField(source='ingredient.id', read_only=True)
     name = CharField(source='ingredient.name', read_only=True)
     measurement_unit = CharField(source='ingredient.measurement_unit',
                                  read_only=True)
+
     class Meta:
         model = RecipeIngredient
         fields = ('id', 'name', 'measurement_unit', 'amount')
@@ -58,7 +64,7 @@ class RecipeGetSerializer(ModelSerializer):
         method_name='_is_in_shopping_cart')
     is_favorited = SerializerMethodField(method_name='_is_favorited')
     ingredients = IngredientGetSerializer(many=True, read_only=True,
-                                       source='recipeingredient')
+                                          source='recipeingredient')
 
     class Meta:
         model = Recipe
@@ -78,6 +84,7 @@ class RecipeGetSerializer(ModelSerializer):
             return False
         return ShoppingCart.objects.filter(user=request.user,
                                            recipe=obj).exists()
+
 
 class RecipePostSerializer(ModelSerializer):
     ingredients = IngredientPostSerializer(many=True)
