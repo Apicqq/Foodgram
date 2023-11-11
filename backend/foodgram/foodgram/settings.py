@@ -57,11 +57,14 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'foodgram.wsgi.application'
 
-
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'django_foodgram',
+        'USER': 'postgres',
+        'PASSWORD': 'postgres',
+        'HOST': os.getenv('DB_HOST', 'localhost'),
+        'PORT': os.getenv('DB_PORT', 5430)
     }
 }
 ##TODO: сменить БД на postgres по готовности проекта
@@ -116,3 +119,4 @@ REST_FRAMEWORK = {
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.LimitOffsetPagination',
     'PAGE_SIZE': 6,
 }
+
