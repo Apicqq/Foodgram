@@ -10,7 +10,7 @@ class Tag(models.Model):
         unique=True,
         blank=False,
         null=False
-    ),
+    )
     color = models.CharField(
         'Цвет тэга',
         max_length=7,
@@ -48,7 +48,7 @@ class Recipe(models.Model):
         'Tag',
         verbose_name='Тэги',
         through='TagRecipe',
-    ),
+    )
     image = models.ImageField(
         'Изображение',
         upload_to='recipes/',
@@ -59,13 +59,13 @@ class Recipe(models.Model):
         max_length=200,
         blank=False,
         null=False
-    ),
+    )
     text = models.CharField(
         'Описание рецепта',
         max_length=30000,
         blank=False,
         null=False
-    ),
+    )
     cooking_time = models.PositiveSmallIntegerField(
         'Время приготовления в минутах',
         blank=False,
@@ -76,6 +76,11 @@ class Recipe(models.Model):
                    'не менее одной минуты.'
             )],
         )
+    author = models.ForeignKey(
+        'users.User',
+        on_delete=models.CASCADE,
+        verbose_name='Автор рецепта',
+    )
 
     class Meta:
         verbose_name = 'Рецепт'
@@ -95,16 +100,20 @@ class Ingredient(models.Model):
         'Единица измерения',
         max_length=200,
     )
+    class Meta:
+        verbose_name = 'Ингредиент'
+        verbose_name_plural = 'Ингредиенты'
+        default_related_name = '%(class)ss'
 
 
 class Favorite(BaseUserRecipeModel):
-    class Meta:
+    class Meta(BaseUserRecipeModel.Meta):
         verbose_name = 'Избранное'
         verbose_name_plural = verbose_name
         constraints = [
             models.UniqueConstraint(
                 fields=('user', 'recipe'),
-                name='unique_user_recipe_%(class)s',
+                name='unique_user_recipe_%(class)ss',
             )
         ]
 
@@ -114,13 +123,13 @@ class Favorite(BaseUserRecipeModel):
 
 class ShoppingCart(BaseUserRecipeModel):
 
-    class Meta:
+    class Meta(BaseUserRecipeModel.Meta):
         verbose_name = 'Список покупок'
         verbose_name_plural = verbose_name
         constraints = [
             models.UniqueConstraint(
                 fields=('user', 'recipe'),
-                name='unique_user_recipe_%(class)s',
+                name='unique_user_recipe_%(class)ss',
             )
         ]
 
@@ -160,7 +169,7 @@ class TagRecipe(models.Model):
     tag = models.ForeignKey(
         Tag,
         on_delete=models.CASCADE,
-        verbose_name='Тег',
+        verbose_name='Тэг',
     )
     class Meta:
         default_related_name = '%(class)ss'

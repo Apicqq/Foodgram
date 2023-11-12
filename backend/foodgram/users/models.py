@@ -40,11 +40,9 @@ class User(AbstractUser):
         verbose_name='Фамилия',
         help_text='Фамилия',
     )
-    password = models.CharField(
-        max_length=150,
-        verbose_name='Пароль',
-        help_text='Пароль',
-    )
+    USERNAME_FIELD = 'email'
+
+    REQUIRED_FIELDS = ['username', 'first_name', 'last_name']
 
     class Meta:
         verbose_name = 'Пользователь'
