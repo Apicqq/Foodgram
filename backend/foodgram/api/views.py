@@ -1,4 +1,5 @@
 from django.shortcuts import get_object_or_404
+from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAuthenticatedOrReadOnly, \
@@ -6,6 +7,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticatedOrReadOnly, \
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
 
+from api.filters import IngredientFilter
 from api.serializers import IngredientSerializer, TagSerializer, \
     RecipePostSerializer, RecipeGetSerializer, FavoriteSerializer
 from recipes.models import Ingredient, Recipe, Tag, Favorite
@@ -16,12 +18,15 @@ class IngredientViewSet(ReadOnlyModelViewSet):
     serializer_class = IngredientSerializer
     permission_classes = (AllowAny,)
     pagination_class = None
-
+    filter_backends = (DjangoFilterBackend,)
+    filterset_class = IngredientFilter
+#
 
 class RecipeViewSet(ModelViewSet):
     queryset = Recipe.objects.all()
     permission_classes = (IsAuthenticatedOrReadOnly,)
     http_method_names = ('get', 'post', 'patch', 'delete')
+
 
     def get_serializer_class(self):
         if self.action in ('list', 'retrieve'):
