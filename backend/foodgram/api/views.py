@@ -1,16 +1,17 @@
-from django.shortcuts import get_object_or_404
+
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import status
 from rest_framework.decorators import action
-from rest_framework.permissions import AllowAny, IsAuthenticatedOrReadOnly, \
+from rest_framework.permissions import AllowAny, \
     IsAuthenticated
-from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
 
 from api.filters import IngredientFilter
+from api.mixins import _create_related_object, _delete_related_object
+from api.permissions import IsAdminAuthorOrReadOnly
 from api.serializers import IngredientSerializer, TagSerializer, \
-    RecipePostSerializer, RecipeGetSerializer, FavoriteSerializer
-from recipes.models import Ingredient, Recipe, Tag, Favorite
+    RecipePostSerializer, RecipeGetSerializer, FavoriteSerializer, \
+    ShoppingCartSerializer
+from recipes.models import Ingredient, Recipe, Tag, Favorite, ShoppingCart
 
 
 class IngredientViewSet(ReadOnlyModelViewSet):
@@ -20,45 +21,46 @@ class IngredientViewSet(ReadOnlyModelViewSet):
     pagination_class = None
     filter_backends = (DjangoFilterBackend,)
     filterset_class = IngredientFilter
-#
+
 
 class RecipeViewSet(ModelViewSet):
     queryset = Recipe.objects.all()
-    permission_classes = (IsAuthenticatedOrReadOnly,)
+    permission_classes = (IsAdminAuthorOrReadOnly,)
     http_method_names = ('get', 'post', 'patch', 'delete')
-
 
     def get_serializer_class(self):
         if self.action in ('list', 'retrieve'):
             return RecipeGetSerializer
         return RecipePostSerializer
 
-    @action(methods=['post', 'delete'], detail=True,
+    @action(detail=True,
             permission_classes=(IsAuthenticated,))
     def favorite(self, request, pk):
-        recipe = get_object_or_404(Recipe, pk=pk)
-        serializer = FavoriteSerializer(context={'request': request}, data={
-            'user': request.user.id,
-        'recipe': recipe.id})
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        if request.method == 'POST':
-            Favorite.objects.create(user=request.user, recipe=recipe)
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        if request.method == 'DELETE':
-            if not Favorite.objects.filter(user=request.user, recipe=recipe).exists():
-                return Response(status=status.HTTP_400_BAD_REQUEST)
-            Favorite.objects.filter(user=request.user, recipe=recipe).delete()
-            return Response(status=status.HTTP_204_NO_CONTENT)
+        """blah blah"""
 
-    @action(methods=['post', 'delete'], detail=True,)
+    @favorite.mapping.post
+    def make_recipe_favorite(self, request, pk):
+        return _create_related_object(pk, request, FavoriteSerializer)
+
+    @favorite.mapping.delete
+    def unmake_recipe_favorite(self, request, pk):
+        return _delete_related_object(pk, request, Favorite)
+
+    @action(detail=True,
+            permission_classes=(IsAuthenticated,))
     def shopping_cart(self, request, pk):
-        pass
+        """blah blah"""
+    @shopping_cart.mapping.post
+    def add_to_shopping_cart(self, request, pk):
+        return _create_related_object(pk, request, ShoppingCartSerializer)
+
+    @shopping_cart.mapping.delete
+    def remove_from_shopping_cart(self, request, pk):
+        return _delete_related_object(pk, request, ShoppingCart)
 
     @action(methods=['get'], detail=False)
     def download_shopping_cart(self, request):
         pass
-
 
 
 class TagViewSet(ReadOnlyModelViewSet):
