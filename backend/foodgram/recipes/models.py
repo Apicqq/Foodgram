@@ -105,6 +105,9 @@ class Ingredient(models.Model):
         verbose_name_plural = 'Ингредиенты'
         default_related_name = '%(class)ss'
 
+    def __str__(self):
+        return self.name[:50]
+
 
 class Favorite(BaseUserRecipeModel):
     class Meta(BaseUserRecipeModel.Meta):
@@ -113,7 +116,8 @@ class Favorite(BaseUserRecipeModel):
         constraints = [
             models.UniqueConstraint(
                 fields=('user', 'recipe'),
-                name='unique_user_recipe_%(class)ss',
+                name='%(app_label)s_%(class) recipe has been marked'
+                     'as favorite already.',
             )
         ]
 
@@ -129,7 +133,7 @@ class ShoppingCart(BaseUserRecipeModel):
         constraints = [
             models.UniqueConstraint(
                 fields=('user', 'recipe'),
-                name='unique_user_recipe_%(class)ss',
+                name='\n%(app_label)s_%(class)s ingredient already added.',
             )
         ]
 
