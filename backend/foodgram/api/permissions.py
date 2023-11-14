@@ -1,7 +1,7 @@
 from rest_framework.permissions import BasePermission, SAFE_METHODS
 
 
-class IsAdminAuthorOrReadOnly(BasePermission):
+class IsAuthorOrReadOnly(BasePermission):
     message = 'Действие недоступно для вас.'
 
     def has_permission(self, request, view):
