@@ -7,6 +7,7 @@ from rest_framework.relations import PrimaryKeyRelatedField
 from rest_framework.serializers import ModelSerializer, SerializerMethodField
 from rest_framework.validators import UniqueTogetherValidator
 
+from api.decorators import get_related_queryset
 from core.services import pass_ingredients
 from recipes.models import Ingredient, Recipe, Tag, Favorite, RecipeIngredient, \
     ShoppingCart
@@ -16,9 +17,15 @@ User = get_user_model()
 
 
 class UserGetSerializer(UserSerializer):
+    is_subscribed = SerializerMethodField(method_name='_is_subscribed')
     class Meta:
         model = User
-        fields = ('id', 'username', 'email', 'first_name', 'last_name')
+        fields = ('id', 'username', 'email', 'first_name', 'last_name',
+                  'is_subscribed')
+
+    @get_related_queryset('follower', 'author')
+    def _is_subscribed(self, obj):
+        pass
 
 
 class IngredientSerializer(ModelSerializer):
@@ -36,8 +43,8 @@ class TagSerializer(ModelSerializer):
 
 
 class IngredientGetSerializer(ModelSerializer):
-    id = IntegerField(read_only=True)
-    name = CharField(source='ingredient', read_only=True)
+    id = IntegerField(read_only=True, source='ingredient.id')
+    name = CharField(source='ingredient.name', read_only=True)
     measurement_unit = CharField(source='ingredient.measurement_unit',
                                  read_only=True)
 
@@ -71,21 +78,13 @@ class RecipeGetSerializer(ModelSerializer):
                   'is_favorited', 'is_in_shopping_cart',
                   'name', 'image', 'text', 'cooking_time')
 
+    @get_related_queryset('favorites', 'recipe')
     def _is_favorited(self, obj):
-        request = self.context.get('request')
-        return (
-                request and request.user.is_authenticated
-                and request.user.favorites.filter(
-            recipe=obj).exists()
-        )
+        pass
 
+    @get_related_queryset('shoppingcarts', 'recipe')
     def _is_in_shopping_cart(self, obj):
-        request = self.context.get('request')
-        return (request and request.user.is_authenticated
-                and request.user.shoppingcarts.filter(
-                    user=request.user, recipe=obj
-                ).exists()
-                )
+        pass
 
 
 class RecipePostSerializer(ModelSerializer):
@@ -158,8 +157,7 @@ class RecipeMinifiedSerializer(ModelSerializer):
 
 
 class SubscriptionsListSerializer(ModelSerializer):
-    recipes = RecipeMinifiedSerializer(many=True)
-    is_subscribed = SerializerMethodField(method_name='_is_subscribed')
+    recipes = SerializerMethodField(method_name='_recipes')
     recipes_count = SerializerMethodField(method_name='_recipes_count')
     """Подписки пользователя."""
 
@@ -171,57 +169,41 @@ class SubscriptionsListSerializer(ModelSerializer):
             'username',
             'first_name',
             'last_name',
-            'is_subscribed',
             'recipes',
-            'recipes_count'
+            'recipes_count',
         )
         read_only_fields = ('__all__',)
 
     def _recipes_count(self, obj):
         return obj.recipes.count()
 
-    def _is_subscribed(self, obj):
+    def _recipes(self, obj):
+        recipes = obj.recipes.all()
         request = self.context.get('request')
-        return (
-                request and request.user.is_authenticated
-                and request.user.follower.filter(user=request.user,
-            author=obj
-        ).exists()
-        )
+        limit = request.query_params.get('recipes_limit')
+        if limit:
+            recipes = obj.recipes.all()[:int(limit)]
+        return RecipeMinifiedSerializer(recipes, many=True,
+                                        context={'request': request}).data
 
 
 class GetRemoveSubscriptionSerializer(ModelSerializer):
     """Добавление и удаление подписок пользователей."""
-    recipes = RecipeMinifiedSerializer(many=True, read_only=True)
-    recipes_count = SerializerMethodField(method_name='_recipes_count')
-    is_subscribed = SerializerMethodField(method_name='_is_subscribed')
 
     class Meta:
-        model = User
-        fields = ("email",
-                  "id",
-                  "username",
-                  "first_name",
-                  "last_name",
-                  "is_subscribed",
-                  "recipes",
-                  "recipes_count")
+        model = Subscription
+        fields = '__all__'
 
     read_only_fields = ('__all__',)
-    validators = UniqueTogetherValidator(
+    validators = [
+        UniqueTogetherValidator(
         queryset=Subscription.objects.all(),
         fields=('user', 'author'),
         message='Вы уже подписаны на этого автора.'
     )
+    ]
 
-    def _recipes_count(self, obj):
-        return obj.recipes.count()
-
-    def _is_subscribed(self, obj):
+    def to_representation(self, instance):
         request = self.context.get('request')
-        return (
-                request and request.user.is_authenticated
-                and request.user.subscriptions.filter(user=request.user,
-            author=obj
-        ).exists()
-        )
+        return SubscriptionsListSerializer(instance.author,
+                                           context={'request': request}).data
