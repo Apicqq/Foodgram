@@ -137,8 +137,7 @@ class Favorite(models.Model):
         constraints = [
             models.UniqueConstraint(
                 fields=('user', 'recipe'),
-                name='%(app_label)s_%(class) recipe has been marked'
-                     'as favorite already.',
+                name='%(app_label)s_%(class)s уже добавлен в избранное.',
             )
         ]
 
@@ -165,7 +164,7 @@ class ShoppingCart(models.Model):
         constraints = [
             models.UniqueConstraint(
                 fields=('user', 'recipe'),
-                name='\n%(app_label)s_%(class)s ingredient already added.',
+                name='\n%(app_label)s_%(class)s уже добавлен в список покупок.',
             )
         ]
 
