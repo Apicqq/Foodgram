@@ -24,7 +24,7 @@ class RecipeAdmin(admin.ModelAdmin):
     inlines = (RecipeIngredientInline,)
 
     def get_favorites(self, obj):
-        return obj.favorites.count()
+        return obj.in_favorites.count()
 
 
 @admin.register(Ingredient)
