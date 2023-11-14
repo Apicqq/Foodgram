@@ -10,6 +10,7 @@ from rest_framework.validators import UniqueTogetherValidator
 from core.services import pass_ingredients
 from recipes.models import Ingredient, Recipe, Tag, Favorite, RecipeIngredient, \
     ShoppingCart
+from users.models import Subscription
 
 User = get_user_model()
 
@@ -17,19 +18,21 @@ User = get_user_model()
 class UserGetSerializer(UserSerializer):
     class Meta:
         model = User
-        fields = ('username', 'email', 'first_name', 'last_name')
+        fields = ('id', 'username', 'email', 'first_name', 'last_name')
 
 
 class IngredientSerializer(ModelSerializer):
     class Meta:
         model = Ingredient
         fields = '__all__'
+        read_only_fields = ('__all__',)
 
 
 class TagSerializer(ModelSerializer):
     class Meta:
         model = Tag
         fields = '__all__'
+        read_only_fields = ('__all__',)
 
 
 class IngredientGetSerializer(ModelSerializer):
@@ -55,7 +58,7 @@ class IngredientPostSerializer(ModelSerializer):
 class RecipeGetSerializer(ModelSerializer):
     image = Base64ImageField(required=True)
     tags = TagSerializer(many=True, read_only=True)
-    author = UserGetSerializer(read_only=True)
+    author = UserGetSerializer()
     is_in_shopping_cart = SerializerMethodField(
         method_name='_is_in_shopping_cart')
     is_favorited = SerializerMethodField(method_name='_is_favorited')
@@ -81,7 +84,8 @@ class RecipeGetSerializer(ModelSerializer):
         return (request and request.user.is_authenticated
                 and request.user.shoppingcarts.filter(
                     user=request.user, recipe=obj
-                ).exists())
+                ).exists()
+                )
 
 
 class RecipePostSerializer(ModelSerializer):
@@ -139,7 +143,85 @@ class FavoriteSerializer(ModelSerializer):
             )
         ]
 
+
 class ShoppingCartSerializer(ModelSerializer):
     class Meta:
         model = ShoppingCart
         fields = '__all__'
+
+
+class RecipeMinifiedSerializer(ModelSerializer):
+    class Meta:
+        model = Recipe
+        fields = ('id', 'name', 'image', 'cooking_time')
+        read_only_fields = ('__all__',)
+
+
+class SubscriptionsListSerializer(ModelSerializer):
+    recipes = RecipeMinifiedSerializer(many=True)
+    is_subscribed = SerializerMethodField(method_name='_is_subscribed')
+    recipes_count = SerializerMethodField(method_name='_recipes_count')
+    """Подписки пользователя."""
+
+    class Meta:
+        model = User
+        fields = (
+            'id',
+            'email',
+            'username',
+            'first_name',
+            'last_name',
+            'is_subscribed',
+            'recipes',
+            'recipes_count'
+        )
+        read_only_fields = ('__all__',)
+
+    def _recipes_count(self, obj):
+        return obj.recipes.count()
+
+    def _is_subscribed(self, obj):
+        request = self.context.get('request')
+        return (
+                request and request.user.is_authenticated
+                and request.user.follower.filter(user=request.user,
+            author=obj
+        ).exists()
+        )
+
+
+class GetRemoveSubscriptionSerializer(ModelSerializer):
+    """Добавление и удаление подписок пользователей."""
+    recipes = RecipeMinifiedSerializer(many=True, read_only=True)
+    recipes_count = SerializerMethodField(method_name='_recipes_count')
+    is_subscribed = SerializerMethodField(method_name='_is_subscribed')
+
+    class Meta:
+        model = User
+        fields = ("email",
+                  "id",
+                  "username",
+                  "first_name",
+                  "last_name",
+                  "is_subscribed",
+                  "recipes",
+                  "recipes_count")
+
+    read_only_fields = ('__all__',)
+    validators = UniqueTogetherValidator(
+        queryset=Subscription.objects.all(),
+        fields=('user', 'author'),
+        message='Вы уже подписаны на этого автора.'
+    )
+
+    def _recipes_count(self, obj):
+        return obj.recipes.count()
+
+    def _is_subscribed(self, obj):
+        request = self.context.get('request')
+        return (
+                request and request.user.is_authenticated
+                and request.user.subscriptions.filter(user=request.user,
+            author=obj
+        ).exists()
+        )
