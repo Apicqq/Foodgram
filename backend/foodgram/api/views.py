@@ -1,16 +1,15 @@
 from django.contrib.auth import get_user_model
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.decorators import action
-from rest_framework.mixins import CreateModelMixin, DestroyModelMixin, \
-    ListModelMixin
 from rest_framework.permissions import AllowAny, \
     IsAuthenticated
-from rest_framework.views import APIView
-from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet, \
-    GenericViewSet
+from rest_framework.response import Response
+from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
 from djoser.views import UserViewSet as DjoserUserViewSet
+
 from api.filters import IngredientFilter, RecipeFilter
 from api.mixins import _create_related_object, _delete_related_object
+from api.pagination import Paginator
 from api.permissions import IsAuthorOrReadOnly
 from api.serializers import IngredientSerializer, TagSerializer, \
     RecipePostSerializer, RecipeGetSerializer, FavoriteSerializer, \
@@ -69,7 +68,7 @@ class RecipeViewSet(ModelViewSet):
     def remove_from_shopping_cart(self, request, pk):
         return _delete_related_object(pk, request, ShoppingCart)
 
-    @action(methods=['get'], detail=False)
+    @action(methods=('get',), detail=False)
     def download_shopping_cart(self, request):
         pass
 
@@ -81,36 +80,41 @@ class TagViewSet(ReadOnlyModelViewSet):
     pagination_class = None
 
 
-# class SubscriptionsViewSet(DjoserUserViewSet):
-#     http_method_names = ('get', 'post', 'delete')
-#     pagination_class = None
-#
-#     @action(methods='get', detail=True)
-#     def subscriptions(self, request):
-#         pages = self.paginate_queryset(User.objects.filter(following__user=self.request.user))
-#         serializer = GetRemoveSubscriptionSerializer(pages, many=True)
-#         return self.get_paginated_response(serializer.data)
-#     @action(detail=True, permission_classes=(AllowAny,))
-#     def subscribe(self, request, pk):
-#         """blah blah."""
-#
-#     @subscribe.mapping.post
-#     def subscribe_to_user(self, request, pk):
-#         return _create_related_object(pk, request,
-#                                       GetRemoveSubscriptionSerializer, author=True)
-#
-#     @subscribe.mapping.delete
-#     def unsubscribe_from_user(self, request, pk):
-#         return _delete_related_object(pk, request,
-#                                       Subscription, author=True)
-
-
-
-class UserSubscriptionsViewSet(ListModelMixin,
-                               GenericViewSet):
-    """Получение списка всех подписок на пользователей."""
-    serializer_class = SubscriptionsListSerializer
-    permission_classes = (IsAuthorOrReadOnly,)
+class UserViewSet(DjoserUserViewSet):
+    http_method_names = ('get', 'post', 'delete')
+    pagination_class = Paginator
 
     def get_queryset(self):
-        return User.objects.filter(following__user=self.request.user)
+        if self.action == 'subscriptions':
+            return User.objects.filter(following__user=self.request.user)
+        return User.objects.all()
+
+    def get_serializer_class(self):
+        if self.action in ('post', 'delete'):
+            return GetRemoveSubscriptionSerializer
+        return SubscriptionsListSerializer
+#
+    @action(methods=('get',), detail=False,
+            permission_classes=(IsAuthorOrReadOnly,))
+    def subscriptions(self, request):
+        queryset = self.filter_queryset(self.get_queryset())
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
+    @action(detail=True, permission_classes=(AllowAny,))
+    def subscribe(self, request, pk):
+        """blah blah."""
+
+    @subscribe.mapping.post
+    def subscribe_to_user(self, request, id):
+        return _create_related_object(id, request,
+                                      GetRemoveSubscriptionSerializer, author=True)
+
+    @subscribe.mapping.delete
+    def unsubscribe_from_user(self, request, id):
+        return _delete_related_object(id, request,
+                                      Subscription, author=True)
