@@ -2,13 +2,14 @@ from django.contrib.auth.models import AbstractUser
 from django.core.validators import RegexValidator
 from django.db import models
 
+from core.constants import UserConstants
 from .validators import validate_username
 
 
 class User(AbstractUser):
     username = models.CharField(
         'Имя пользователя',
-        max_length=150,
+        max_length=UserConstants.USER_USERNAME_LENGTH,
         unique=True,
         blank=False,
         null=False,
@@ -21,7 +22,7 @@ class User(AbstractUser):
         )
         )
     email = models.EmailField(
-        max_length=254,
+        max_length=UserConstants.USER_EMAIL_LENGTH,
         unique=True,
         verbose_name='Адрес электронной почты',
         help_text='Адрес электронной почты',
@@ -31,12 +32,12 @@ class User(AbstractUser):
         }
     )
     first_name = models.CharField(
-        max_length=150,
+        max_length=UserConstants.USER_FIRST_NAME_LENGTH,
         verbose_name='Имя',
         help_text='Имя',
     )
     last_name = models.CharField(
-        max_length=150,
+        max_length=UserConstants.USER_LAST_NAME_LENGTH,
         verbose_name='Фамилия',
         help_text='Фамилия',
     )
@@ -48,9 +49,10 @@ class User(AbstractUser):
         verbose_name = 'Пользователь'
         verbose_name_plural = 'Пользователи'
         default_related_name = '%(class)ss'
+        ordering = ('username',)
 
     def __str__(self):
-        return self.username[:30]
+        return self.username[:UserConstants.STR_RETURN_VALUE]
 
 
 class Subscription(models.Model):
