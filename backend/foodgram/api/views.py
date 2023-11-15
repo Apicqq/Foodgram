@@ -1,15 +1,14 @@
 from django.contrib.auth import get_user_model
 from django_filters.rest_framework import DjangoFilterBackend
+from djoser.views import UserViewSet as DjoserUserViewSet
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, \
     IsAuthenticated
-from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
-from djoser.views import UserViewSet as DjoserUserViewSet
 
 from api.filters import IngredientFilter, RecipeFilter
 from api.mixins import _create_related_object, _delete_related_object
-from api.pagination import Paginator
+from api.pagination import PageNumberPaginator
 from api.permissions import IsAuthorOrReadOnly
 from api.serializers import IngredientSerializer, TagSerializer, \
     RecipePostSerializer, RecipeGetSerializer, FavoriteSerializer, \
@@ -82,7 +81,7 @@ class TagViewSet(ReadOnlyModelViewSet):
 
 class UserViewSet(DjoserUserViewSet):
     http_method_names = ('get', 'post', 'delete')
-    pagination_class = Paginator
+    pagination_class = PageNumberPaginator
 
     def get_queryset(self):
         if self.action == 'subscriptions':
@@ -93,17 +92,11 @@ class UserViewSet(DjoserUserViewSet):
         if self.action in ('post', 'delete'):
             return GetRemoveSubscriptionSerializer
         return SubscriptionsListSerializer
-#
+
     @action(methods=('get',), detail=False,
             permission_classes=(IsAuthorOrReadOnly,))
     def subscriptions(self, request):
-        queryset = self.filter_queryset(self.get_queryset())
-        page = self.paginate_queryset(queryset)
-        if page is not None:
-            serializer = self.get_serializer(page, many=True)
-            return self.get_paginated_response(serializer.data)
-        serializer = self.get_serializer(queryset, many=True)
-        return Response(serializer.data)
+        return self.list(request)
 
     @action(detail=True, permission_classes=(AllowAny,))
     def subscribe(self, request, pk):
