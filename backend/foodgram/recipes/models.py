@@ -2,13 +2,15 @@ from django.contrib.auth import get_user_model
 from django.core.validators import MinValueValidator, RegexValidator
 from django.db import models
 
-from core.models import BaseUserRecipeModel
+from core.constants import RecipeConstants
 
 User = get_user_model()
-class Tag(models.Model):
+
+
+class Tag(models.Model, RecipeConstants):
     name = models.CharField(
         'Название тэга',
-        max_length=200,
+        max_length=RecipeConstants.TAG_NAME_LENGTH,
         unique=True,
         blank=False,
         null=False,
@@ -16,7 +18,7 @@ class Tag(models.Model):
     )
     color = models.CharField(
         'Цвет тэга',
-        max_length=7,
+        max_length=RecipeConstants.TAG_COLOR_LENGTH,
         unique=True,
         blank=False,
         null=False,
@@ -24,7 +26,7 @@ class Tag(models.Model):
     )
     slug = models.SlugField(
         'Слаг',
-        max_length=200,
+        max_length=RecipeConstants.TAG_SLUG_LENGTH,
         unique=True,
         blank=False,
         null=False,
@@ -45,7 +47,7 @@ class Tag(models.Model):
         default_related_name = '%(class)ss'
 
     def __str__(self):
-        return self.name[:30]
+        return self.name[:RecipeConstants.STR_RETURN_VALUE]
 
 
 class Recipe(models.Model):
@@ -66,13 +68,13 @@ class Recipe(models.Model):
     )
     name = models.CharField(
         'Название рецепта',
-        max_length=200,
+        max_length=RecipeConstants.RECIPE_NAME_LENGTH,
         blank=False,
         null=False
     )
     text = models.CharField(
         'Описание рецепта',
-        max_length=30000,
+        max_length=RecipeConstants.RECIPE_TEXT_LENGTH,
         blank=False,
         null=False
     )
@@ -82,10 +84,11 @@ class Recipe(models.Model):
         null=False,
         validators=[
             MinValueValidator(
-                1, 'Время приготовления должно быть '
-                   'не менее одной минуты.'
+                RecipeConstants.COOKING_TIME_MIN_VALUE_VALIDATOR_VALUE,
+                'Время приготовления должно быть '
+                'не менее одной минуты.'
             )],
-        )
+    )
     author = models.ForeignKey(
         'users.User',
         on_delete=models.CASCADE,
@@ -101,27 +104,28 @@ class Recipe(models.Model):
         ordering = ('-pub_date',)
 
     def __str__(self):
-        return self.name[:30]
+        return self.name[:RecipeConstants.STR_RETURN_VALUE]
 
 
 class Ingredient(models.Model):
     name = models.CharField(
         'Название ингредиента',
-        max_length=200,
+        max_length=RecipeConstants.INGREDIENT_NAME_LENGTH,
         help_text='Не более двухсот символов.'
     )
     measurement_unit = models.CharField(
         'Единица измерения',
-        max_length=200,
+        max_length=RecipeConstants.INGREDIENT_MEAUSEREMENT_UNIT_LENGTH,
         help_text='Не более двухсот символов.'
     )
+
     class Meta:
         verbose_name = 'Ингредиент'
         verbose_name_plural = 'Ингредиенты'
         default_related_name = '%(class)ss'
 
     def __str__(self):
-        return self.name[:50]
+        return self.name[:RecipeConstants.STR_RETURN_VALUE]
 
 
 class Favorite(models.Model):
@@ -137,6 +141,7 @@ class Favorite(models.Model):
         verbose_name='Рецепт',
         related_name='in_favorites'
     )
+
     class Meta:
         verbose_name = 'Избранное'
         verbose_name_plural = verbose_name
@@ -164,6 +169,7 @@ class ShoppingCart(models.Model):
         verbose_name='Рецепт',
         related_name='carts'
     )
+
     class Meta:
         verbose_name = 'Список покупок'
         verbose_name_plural = verbose_name
@@ -177,6 +183,7 @@ class ShoppingCart(models.Model):
     def __str__(self):
         return (f'{self.user.username} добавил'
                 f' {self.recipe.name} в список покупок.')
+
 
 class RecipeIngredient(models.Model):
     recipe = models.ForeignKey(
@@ -198,13 +205,15 @@ class RecipeIngredient(models.Model):
             )
         ]
     )
+
     class Meta:
         default_related_name = '%(class)ss'
         verbose_name = 'Ингредиент рецепта'
         verbose_name_plural = 'Ингредиенты рецепта'
 
     def __str__(self):
-        return self.recipe.name[:30]
+        return self.recipe.name[:RecipeConstants.STR_RETURN_VALUE]
+
 
 class TagRecipe(models.Model):
     recipe = models.ForeignKey(
@@ -217,6 +226,7 @@ class TagRecipe(models.Model):
         on_delete=models.CASCADE,
         verbose_name='Тэг',
     )
+
     class Meta:
         default_related_name = '%(class)ss'
         verbose_name = 'Тэг рецепта'
