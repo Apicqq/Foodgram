@@ -70,6 +70,7 @@ DATABASES = {
         'PORT': os.getenv('DB_PORT', 5430)
     }
 }
+
 ##TODO: сменить БД на postgres по готовности проекта
 
 
@@ -112,14 +113,13 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.IsAuthenticated',
+        'rest_framework.permissions.IsAuthenticatedOrReadOnly',
     ],
 
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework.authentication.TokenAuthentication',
     ],
-    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.LimitOffsetPagination',
-    'PAGE_SIZE': 6,
+    'DEFAULT_PAGINATION_CLASS': 'api.pagination.PageNumberPaginator',
 }
 
 DJOSER = {
@@ -130,8 +130,8 @@ DJOSER = {
         'current_user': 'api.serializers.UserGetSerializer',
     },
     'PERMISSIONS': {
-        'user_list': ('rest_framework.permissions.AllowAny',),
-        'user': ('djoser.permissions.CurrentUserOrAdminOrReadOnly',),
+        'user_list': ('api.permissions.IsAuthorOrReadOnly',),
+        'user': ('api.permissions.IsAuthorOrReadOnly',)
     }
 }
 
