@@ -20,12 +20,17 @@ class UserGetSerializer(UserSerializer):
     is_subscribed = SerializerMethodField(method_name='_is_subscribed')
     class Meta:
         model = User
-        fields = ('id', 'username', 'email', 'first_name', 'last_name',
+        fields = ('id', 'email', 'username', 'first_name', 'last_name',
                   'is_subscribed')
+        read_only_fields = ('is_subscribed',)
 
-    @get_related_queryset('follower', 'author')
+    # @get_related_queryset('follower', 'author')
     def _is_subscribed(self, obj):
-        pass
+        request = self.context.get('request')
+
+        return (request
+                and request.user.is_authenticated
+                and request.user.follower.filter(author=obj).exists())
 
 
 class IngredientSerializer(ModelSerializer):
@@ -74,7 +79,7 @@ class RecipeGetSerializer(ModelSerializer):
 
     class Meta:
         model = Recipe
-        fields = ('id', 'tags', 'author', 'ingredients',
+        fields = ('id', 'tags', 'author',  'ingredients',
                   'is_favorited', 'is_in_shopping_cart',
                   'name', 'image', 'text', 'cooking_time')
 
@@ -100,12 +105,23 @@ class RecipePostSerializer(ModelSerializer):
                   'text', 'cooking_time')
 
     def validate(self, data):
-        if not data.get('recipeingredients'):
-            raise ValidationError('В рецепте должен быть'
-                                  'как минимум один ингредиент.')
-        # if len(set(data.get('recipeingredients'))) != len(
-        #         data.get('recipeingredients')):
-        #     raise ValidationError('Ингредиенты должны быть уникальными.')
+        ingredients = data.get('recipeingredients')
+        tags = data.get('tags')
+        image = data.get('image')
+
+        if not ingredients or not tags or not image:
+            raise ValidationError('Так нельзя!')
+        ingredients_list = []
+        for ingredient in data.get('recipeingredients'):
+            if ingredient.get('amount') <= 0:
+                raise ValidationError(
+                    'Количество не может быть меньше 1'
+                )
+            ingredients_list.append(ingredient.get('id'))
+        if len(set(ingredients_list)) != len(ingredients_list):
+            raise ValidationError(
+                'Вы пытаетесь добавить в рецепт два одинаковых ингредиента'
+            )
         return data
 
     def create(self, validated_data):
@@ -127,7 +143,9 @@ class RecipePostSerializer(ModelSerializer):
         return super().update(instance, validated_data)
 
     def to_representation(self, instance):
-        return RecipeGetSerializer(instance).data
+        request = self.context.get('request')
+        return RecipeGetSerializer(instance,
+                                   context={'request': request}).data
 
 
 class FavoriteSerializer(ModelSerializer):
@@ -156,33 +174,36 @@ class RecipeMinifiedSerializer(ModelSerializer):
         read_only_fields = ('__all__',)
 
 
-class SubscriptionsListSerializer(ModelSerializer):
+class SubscriptionsListSerializer(UserGetSerializer):
     recipes = SerializerMethodField(method_name='_recipes')
     recipes_count = SerializerMethodField(method_name='_recipes_count')
+    is_subscribed = SerializerMethodField(method_name='_is_subscribed')
     """Подписки пользователя."""
 
     class Meta:
         model = User
         fields = (
-            'id',
             'email',
+            'id',
             'username',
             'first_name',
             'last_name',
+            'is_subscribed',
             'recipes',
             'recipes_count',
         )
         read_only_fields = ('__all__',)
-
     def _recipes_count(self, obj):
         return obj.recipes.count()
 
     def _recipes(self, obj):
-        recipes = obj.recipes.all()
         request = self.context.get('request')
-        limit = request.query_params.get('recipes_limit')
-        if limit:
-            recipes = obj.recipes.all()[:int(limit)]
+        recipes_limit = None
+        if request:
+            recipes_limit = request.query_params.get('recipes_limit')
+        recipes = obj.recipes.all()
+        if recipes_limit:
+            recipes = recipes[:int(recipes_limit)]
         return RecipeMinifiedSerializer(recipes, many=True,
                                         context={'request': request}).data
 
@@ -193,9 +214,9 @@ class GetRemoveSubscriptionSerializer(ModelSerializer):
     class Meta:
         model = Subscription
         fields = '__all__'
+        read_only_fields = ('__all__',)
 
-    read_only_fields = ('__all__',)
-    validators = [
+        validators = [
         UniqueTogetherValidator(
         queryset=Subscription.objects.all(),
         fields=('user', 'author'),
