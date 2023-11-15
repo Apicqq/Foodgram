@@ -2,18 +2,22 @@ from django.contrib.auth import get_user_model
 from django_filters.rest_framework import DjangoFilterBackend
 from djoser.views import UserViewSet as DjoserUserViewSet
 from rest_framework.decorators import action
-from rest_framework.permissions import AllowAny, \
-    IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet, ReadOnlyModelViewSet
 
 from api.filters import IngredientFilter, RecipeFilter
-from api.mixins import _create_related_object, _delete_related_object
-from api.pagination import PageNumberPaginator
 from api.permissions import IsAuthorOrReadOnly
-from api.serializers import IngredientSerializer, TagSerializer, \
-    RecipePostSerializer, RecipeGetSerializer, FavoriteSerializer, \
-    ShoppingCartSerializer, GetRemoveSubscriptionSerializer, \
-    SubscriptionsListSerializer
+from api.serializers import (IngredientSerializer,
+                             TagSerializer,
+                             RecipePostSerializer,
+                             RecipeGetSerializer,
+                             FavoriteSerializer,
+                             ShoppingCartSerializer,
+                             GetRemoveSubscriptionSerializer,
+                             SubscriptionsListSerializer)
+from core.services import _create_related_object, _delete_related_object
+from core.utils import draw_pdf_report
 from recipes.models import Ingredient, Recipe, Tag, Favorite, ShoppingCart
 from users.models import Subscription
 
@@ -21,20 +25,25 @@ User = get_user_model()
 
 
 class IngredientViewSet(ReadOnlyModelViewSet):
+    """ViewSet для работы с ингредиентами."""
+
     queryset = Ingredient.objects.all()
     serializer_class = IngredientSerializer
     permission_classes = (AllowAny,)
-    pagination_class = None
     filter_backends = (DjangoFilterBackend,)
     filterset_class = IngredientFilter
 
 
 class RecipeViewSet(ModelViewSet):
+    """ViewSet для работы с рецептами.
+    Помимо стандартных методов, реализованы action
+    для работы с избранными рецептами пользователя."""
+
     queryset = Recipe.objects.select_related('author')
-    permission_classes = (IsAuthorOrReadOnly,)
     http_method_names = ('get', 'post', 'patch', 'delete')
     filter_backends = (DjangoFilterBackend,)
     filterset_class = RecipeFilter
+    permission_classes = (IsAuthorOrReadOnly,)
 
     def get_serializer_class(self):
         if self.action in ('list', 'retrieve'):
@@ -57,7 +66,7 @@ class RecipeViewSet(ModelViewSet):
     @action(detail=True,
             permission_classes=(IsAuthenticated,))
     def shopping_cart(self, request, pk):
-        """blah blah"""
+        """Добавление и удаление рецептов из списка покупок."""
 
     @shopping_cart.mapping.post
     def add_to_shopping_cart(self, request, pk):
@@ -67,47 +76,56 @@ class RecipeViewSet(ModelViewSet):
     def remove_from_shopping_cart(self, request, pk):
         return _delete_related_object(pk, request, ShoppingCart)
 
-    @action(methods=('get',), detail=False)
+    @action(methods=('get',), detail=False,
+            permission_classes=(IsAuthenticated,))
     def download_shopping_cart(self, request):
-        pass
+        return draw_pdf_report(request)
 
 
 class TagViewSet(ReadOnlyModelViewSet):
+    """ViewSet для работы с тэгами."""
     queryset = Tag.objects.all()
     serializer_class = TagSerializer
-    permission_classes = (AllowAny,)
+    permission_classes = (IsAuthorOrReadOnly,)
     pagination_class = None
 
 
 class UserViewSet(DjoserUserViewSet):
-    http_method_names = ('get', 'post', 'delete')
-    pagination_class = PageNumberPaginator
-
-    def get_queryset(self):
-        if self.action == 'subscriptions':
-            return User.objects.filter(following__user=self.request.user)
-        return User.objects.all()
+    """Вьюсет для работы с подписками. Наследуемся от
+    вьюсета Djoser'а, чтобы соблюсти логику путей в API."""
 
     def get_serializer_class(self):
-        if self.action in ('post', 'delete'):
+        if self.action == 'subscribe':
             return GetRemoveSubscriptionSerializer
-        return SubscriptionsListSerializer
+        elif self.action == 'subscriptions':
+            return SubscriptionsListSerializer
+        return super().get_serializer_class()
 
     @action(methods=('get',), detail=False,
-            permission_classes=(IsAuthorOrReadOnly,))
+            permission_classes=(IsAuthenticated,))
     def subscriptions(self, request):
-        return self.list(request)
+        queryset = self.filter_queryset(
+            User.objects.filter(following__user=self.request.user)
+        )
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
 
-    @action(detail=True, permission_classes=(AllowAny,))
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+
+    @action(detail=True, permission_classes=(IsAuthenticated,))
     def subscribe(self, request, pk):
-        """blah blah."""
+        """Action для работы с подписками пользователей."""
 
     @subscribe.mapping.post
     def subscribe_to_user(self, request, id):
         return _create_related_object(id, request,
-                                      GetRemoveSubscriptionSerializer, author=True)
+                                      GetRemoveSubscriptionSerializer,
+                                      subscription_arg=True)
 
     @subscribe.mapping.delete
     def unsubscribe_from_user(self, request, id):
         return _delete_related_object(id, request,
-                                      Subscription, author=True)
+                                      Subscription, subscription_arg=True)
