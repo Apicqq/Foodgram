@@ -11,14 +11,16 @@ class Tag(models.Model):
         max_length=200,
         unique=True,
         blank=False,
-        null=False
+        null=False,
+        help_text='Не более двухсот символов.'
     )
     color = models.CharField(
         'Цвет тэга',
         max_length=7,
         unique=True,
         blank=False,
-        null=False
+        null=False,
+        help_text='Цвет тэга в формате HEX, например: #FF0000.',
     )
     slug = models.SlugField(
         'Слаг',
@@ -26,6 +28,8 @@ class Tag(models.Model):
         unique=True,
         blank=False,
         null=False,
+        help_text='Транслитерированное название тэга.'
+                  'Помимо латиницы доступен символ "-".',
         validators=[
             RegexValidator(
                 regex=r'[\w-]+$',
@@ -104,10 +108,12 @@ class Ingredient(models.Model):
     name = models.CharField(
         'Название ингредиента',
         max_length=200,
+        help_text='Не более двухсот символов.'
     )
     measurement_unit = models.CharField(
         'Единица измерения',
         max_length=200,
+        help_text='Не более двухсот символов.'
     )
     class Meta:
         verbose_name = 'Ингредиент'
@@ -194,6 +200,11 @@ class RecipeIngredient(models.Model):
     )
     class Meta:
         default_related_name = '%(class)ss'
+        verbose_name = 'Ингредиент рецепта'
+        verbose_name_plural = 'Ингредиенты рецепта'
+
+    def __str__(self):
+        return self.recipe.name[:30]
 
 class TagRecipe(models.Model):
     recipe = models.ForeignKey(
@@ -208,3 +219,5 @@ class TagRecipe(models.Model):
     )
     class Meta:
         default_related_name = '%(class)ss'
+        verbose_name = 'Тэг рецепта'
+        verbose_name_plural = 'Тэги рецепта'
