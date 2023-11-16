@@ -1,6 +1,6 @@
 import io
 
-from django.http import response
+from django.http.response import FileResponse
 from reportlab.lib.units import cm
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
@@ -13,7 +13,7 @@ def draw_pdf_report(request):
     """Рисуем отчёт о предстоящих покупках в виде PDF-файла."""
     buffer = io.BytesIO()
     p = canvas.Canvas(buffer)
-    pdfmetrics.registerFont(TTFont('FreeSans', 'api/FreeSans.ttf'))
+    pdfmetrics.registerFont(TTFont('FreeSans', 'fonts/FreeSans.ttf'))
     p.setFont('FreeSans', 14)
     p.drawCentredString(
         300, 800,
@@ -25,5 +25,5 @@ def draw_pdf_report(request):
     p.showPage()
     p.save()
     buffer.seek(0)
-    return response.FileResponse(buffer, as_attachment=True,
+    return FileResponse(buffer, as_attachment=True,
                                  filename='shopping_list.pdf')

@@ -53,7 +53,7 @@ class RecipeViewSet(ModelViewSet):
     @action(detail=True,
             permission_classes=(IsAuthenticated,))
     def favorite(self, request, pk):
-        """blah blah"""
+        """Добавление и удаление рецептов из избранного."""
 
     @favorite.mapping.post
     def make_recipe_favorite(self, request, pk):
@@ -84,6 +84,7 @@ class RecipeViewSet(ModelViewSet):
 
 class TagViewSet(ReadOnlyModelViewSet):
     """ViewSet для работы с тэгами."""
+
     queryset = Tag.objects.all()
     serializer_class = TagSerializer
     permission_classes = (IsAuthorOrReadOnly,)
