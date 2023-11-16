@@ -1,6 +1,6 @@
 from django_filters import rest_framework as filters
 
-from recipes.models import Ingredient, Recipe
+from recipes.models import Ingredient, Recipe, Tag
 
 
 class IngredientFilter(filters.FilterSet):
@@ -13,7 +13,9 @@ class IngredientFilter(filters.FilterSet):
 
 
 class RecipeFilter(filters.FilterSet):
-    tags = filters.AllValuesMultipleFilter(field_name='tags__slug')
+    tags = filters.ModelMultipleChoiceFilter(field_name='tags__slug',
+                                             queryset=Tag.objects.all(),
+                                             to_field_name='slug')
     is_favorited = filters.BooleanFilter(method='_is_favorited')
     is_in_shopping_cart = filters.BooleanFilter(
         method='_in_shopping_cart')
