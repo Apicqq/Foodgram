@@ -26,4 +26,4 @@ def draw_pdf_report(request):
     p.save()
     buffer.seek(0)
     return FileResponse(buffer, as_attachment=True,
-                                 filename='shopping_list.pdf')
+                        filename='shopping_list.pdf')

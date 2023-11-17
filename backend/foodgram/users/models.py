@@ -20,7 +20,7 @@ class User(AbstractUser):
             ),
             validate_username
         )
-        )
+    )
     email = models.EmailField(
         max_length=UserConstants.USER_EMAIL_LENGTH,
         unique=True,

@@ -2,18 +2,20 @@ from django.contrib.auth import get_user_model
 from djoser.serializers import UserSerializer
 from drf_extra_fields.fields import Base64ImageField
 from rest_framework.exceptions import ValidationError
-from rest_framework.fields import IntegerField, CharField
+from rest_framework.fields import CharField, IntegerField
 from rest_framework.relations import PrimaryKeyRelatedField
 from rest_framework.serializers import ModelSerializer, SerializerMethodField
 from rest_framework.validators import UniqueTogetherValidator
 
 from core.services import pass_ingredients
-from recipes.models import (Ingredient,
-                            Recipe,
-                            Tag,
-                            Favorite,
-                            RecipeIngredient,
-                            ShoppingCart)
+from recipes.models import (
+    Ingredient,
+    Favorite,
+    Recipe,
+    RecipeIngredient,
+    Tag,
+    ShoppingCart
+)
 from users.models import Subscription
 
 User = get_user_model()

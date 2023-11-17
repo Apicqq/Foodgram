@@ -176,7 +176,8 @@ class ShoppingCart(models.Model):
         constraints = [
             models.UniqueConstraint(
                 fields=('user', 'recipe'),
-                name='\n%(app_label)s_%(class)s уже добавлен в список покупок.',
+                name='\n%(app_label)s_%(class)s уже добавлен'
+                     ' в список покупок.',
             )
         ]
 

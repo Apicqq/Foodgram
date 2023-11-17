@@ -1,12 +1,9 @@
-from django.contrib.auth import get_user_model
 from django.db.models import Sum
 from rest_framework import status
 from rest_framework.generics import get_object_or_404
 from rest_framework.response import Response
 
 from recipes.models import Ingredient, RecipeIngredient
-
-User = get_user_model()
 
 
 def pass_ingredients(ingredients, recipe):
@@ -21,13 +18,17 @@ def pass_ingredients(ingredients, recipe):
 
 def get_subscription_ingredients(request):
     shopping_list = []
-    ingredients = (request.user.
-    shoppingcarts.values
-    ('recipe__ingredients__name',
-     'recipe__ingredients__measurement_unit')
-    .annotate(ingredient_amount=Sum(
-        'recipe__recipeingredients__amount'
-    )))
+    ingredients = (
+        request.user.shoppingcarts.values(
+            'recipe__ingredients__name',
+            'recipe__ingredients__measurement_unit'
+        )
+        .annotate(
+            ingredient_amount=Sum(
+                'recipe__recipeingredients__amount'
+            )
+        )
+    )
     for item in ingredients:
         name = item.get('recipe__ingredients__name', 'Не указано')
         measurement_unit = (

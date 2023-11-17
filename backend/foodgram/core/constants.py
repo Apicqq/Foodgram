@@ -1,5 +1,6 @@
 """Константы, используемые в приложениях. """
 
+
 class RecipeConstants:
     """Константы для приложения рецептов."""
 
@@ -24,8 +25,3 @@ class UserConstants:
     USER_FIRST_NAME_LENGTH = 150
     USER_LAST_NAME_LENGTH = 150
     STR_RETURN_VALUE = 30
-
-
-
-
-
