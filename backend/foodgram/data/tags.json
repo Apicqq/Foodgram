@@ -1,0 +1,5 @@
+[{"name": "Выпечка", "color": "#FF0000", "slug": "vypechka"},
+  {"name": "Ужин", "color": "#FFA500", "slug": "uzhin" },
+  {"name": "Салат", "color": "#F4A900", "slug": "salat" },
+  {"name": "Основное блюдо", "color": "#008000", "slug": "osnovnoe-blyudo" },
+  {"name": "Гарнир", "color": "#0000FF", "slug": "garnir" }]
