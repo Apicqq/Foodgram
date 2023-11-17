@@ -14,19 +14,17 @@ services:
   backend:
     depends_on:
       - db
-    build: ../backend/foodgram/
+    image: apicqq/foodgram_backend:latest
     env_file: .env
     volumes:
       - static:/backend_static
       - media:/app/media
   frontend:
-    build:
-      context: ../frontend
-      dockerfile: Dockerfile
+    image: apicqq/foodgram_frontend:latest
     volumes:
       - ../frontend/:/app/result_build/
   nginx:
-    image: nginx:1.19.3
+    image: apicqq/foodgram_gateway:latest
     depends_on:
       - backend
       - db
@@ -37,4 +35,4 @@ services:
       - ../frontend/build:/usr/share/nginx/html/
       - ../docs/:/usr/share/nginx/html/api/docs/
       - static:/static/
-      - media:/media
+      - media:/media/
