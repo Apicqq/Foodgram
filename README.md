@@ -1,4 +1,4 @@
-# Kittygram - Учебный проект Яндекс.Практикум
+# Foodgram - Учебный проект Яндекс.Практикум
 
 ![Github Actions main workflow](https://github.com/apicqq/foodgram-project-react/actions/workflows/main.yml/badge.svg)
 ![Python](https://img.shields.io/badge/python-3670A0?style=for-the-badge&logo=python&logoColor=ffdd54)
