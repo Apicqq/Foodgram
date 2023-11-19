@@ -72,8 +72,8 @@ class Recipe(models.Model):
     text = models.CharField(
         'Описание рецепта',
         max_length=RecipeConstants.RECIPE_TEXT_LENGTH,
-    #? В ТЗ нет указания о длине текста, поставил примерное число.
-    # Для чарфилда обязательно поставить какое-то.
+        # В ТЗ нет указания о длине текста, поставил примерное число.
+        # Для чарфилда обязательно поставить какое-то.
     )
     cooking_time = models.PositiveSmallIntegerField(
         'Время приготовления в минутах',
