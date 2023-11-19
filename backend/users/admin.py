@@ -1,0 +1,34 @@
+from django.contrib import admin
+from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
+
+from core.constants import UserConstants
+from users.models import User
+from .models import Subscription
+
+
+@admin.register(User)
+class UserAdmin(BaseUserAdmin):
+    list_display = ('id',
+                    'username',
+                    'email',
+                    'first_name',
+                    'last_name',
+                    'get_recipes',
+                    'get_subscribers')
+    search_fields = ('username', 'email', 'first_name', 'last_name')
+    list_filter = ('username', 'email')
+
+    @admin.display(description=UserConstants.RECIPES_AMOUNT)
+    def get_recipes(self, obj):
+        return obj.recipes.count()
+
+    @admin.display(description=UserConstants.SUBSCRIBERS_AMOUNT)
+    def get_subscribers(self, obj):
+        return obj.follower.count()
+
+
+@admin.register(Subscription)
+class SubscriptionAdmin(admin.ModelAdmin):
+    list_display = ('id', 'user', 'author')
+    search_fields = ('user', 'author')
+    list_filter = ('user', 'author')
