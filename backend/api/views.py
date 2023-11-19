@@ -1,5 +1,7 @@
+from django.db.models import Sum
 from django_filters.rest_framework import DjangoFilterBackend
 from djoser.views import UserViewSet as DjoserUserViewSet
+from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
@@ -15,9 +17,13 @@ from api.serializers import (IngredientSerializer,
                              ShoppingCartSerializer,
                              GetRemoveSubscriptionSerializer,
                              SubscriptionsListSerializer)
+from core.pdf_reporter import draw_pdf_report
 from core.services import _create_related_object, _delete_related_object
-from core.utils import draw_pdf_report
-from recipes.models import Ingredient, Recipe, Tag, Favorite, ShoppingCart
+from recipes.models import (Ingredient,
+                            Recipe,
+                            Tag,
+                            Favorite,
+                            ShoppingCart, RecipeIngredient)
 from users.models import Subscription, User
 
 
@@ -36,16 +42,25 @@ class RecipeViewSet(ModelViewSet):
     Помимо стандартных методов, реализованы action
     для работы с избранными рецептами пользователя."""
 
-    queryset = Recipe.objects.select_related(
-        'author'
-    ).prefetch_related(
-        'tags',
-        'ingredients'
-    )
     http_method_names = ('get', 'post', 'patch', 'delete')
     filter_backends = (DjangoFilterBackend,)
     filterset_class = RecipeFilter
     permission_classes = (IsAuthorOrReadOnly,)
+
+    def get_queryset(self):
+        if self.request.user.is_anonymous:
+            return Recipe.objects.select_related(
+                'author'
+            ).prefetch_related(
+                'tags',
+                'ingredients'
+            )
+        return Recipe.objects.select_related(
+            'author'
+        ).prefetch_related(
+            'tags',
+            'ingredients'
+        ).get_recipe_filters(self.request.user)
 
     def get_serializer_class(self):
         if self.action in ('list', 'retrieve'):
@@ -75,7 +90,20 @@ class RecipeViewSet(ModelViewSet):
     @action(methods=('get',), detail=False,
             permission_classes=(IsAuthenticated,))
     def download_shopping_cart(self, request):
-        return draw_pdf_report(request)
+        """Скачивание списка покупок."""
+        ingredients = (
+            RecipeIngredient.objects.filter(
+                recipe__shoppingcarts__user=request.user
+            ).values(
+                'ingredient__name',
+                'ingredient__measurement_unit'
+            ).annotate(
+                ingredient_amount=Sum(
+                    'amount'
+                )
+            )
+        )
+        return draw_pdf_report(ingredients)
 
 
 class TagViewSet(ReadOnlyModelViewSet):
@@ -90,6 +118,8 @@ class TagViewSet(ReadOnlyModelViewSet):
 class UserViewSet(DjoserUserViewSet):
     """Вьюсет для работы с подписками. Наследуемся от
     вьюсета Djoser'а, чтобы соблюсти логику путей в API."""
+
+# Для экшена 'me' у меня установлен дефолтный пермишен в настройках Djoser.
 
     @action(methods=('get',), detail=False,
             permission_classes=(IsAuthenticated,),
@@ -110,11 +140,20 @@ class UserViewSet(DjoserUserViewSet):
             methods=('post',))
     def subscribe(self, request, id):
         """Action для работы с подписками пользователей."""
-        return _create_related_object(id, request,
-                                      GetRemoveSubscriptionSerializer,
-                                      subscription_arg=True)
+        serializer = GetRemoveSubscriptionSerializer(
+            data={
+                'user': request.user.id,
+                'author': id},
+            context={'request': request})
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
     @subscribe.mapping.delete
     def unsubscribe(self, request, id):
-        return _delete_related_object(id, request,
-                                      Subscription, subscription_arg=True)
+        if not Subscription.objects.filter(
+                user=request.user, author_id=id).exists():
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+        Subscription.objects.filter(
+            user=request.user, author=id).delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
