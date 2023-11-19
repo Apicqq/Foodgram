@@ -7,12 +7,14 @@ from .validators import validate_username
 
 
 class User(AbstractUser):
+    USERNAME_FIELD = 'email'
+
+    REQUIRED_FIELDS = ('username', 'first_name', 'last_name')
+
     username = models.CharField(
         'Имя пользователя',
         max_length=UserConstants.USER_USERNAME_LENGTH,
         unique=True,
-        blank=False,
-        null=False,
         validators=(
             RegexValidator(
                 regex=r'^[\w.@+-]+$',
@@ -41,14 +43,10 @@ class User(AbstractUser):
         verbose_name='Фамилия',
         help_text='Фамилия',
     )
-    USERNAME_FIELD = 'email'
-
-    REQUIRED_FIELDS = ['username', 'first_name', 'last_name']
 
     class Meta:
         verbose_name = 'Пользователь'
         verbose_name_plural = 'Пользователи'
-        default_related_name = '%(class)ss'
         ordering = ('username',)
 
     def __str__(self):

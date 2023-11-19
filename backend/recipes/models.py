@@ -1,44 +1,44 @@
-from django.contrib.auth import get_user_model
-from django.core.validators import MinValueValidator, RegexValidator
+from colorfield.fields import ColorField
+from django.core.validators import MinValueValidator, MaxValueValidator
 from django.db import models
+from django.db.models import OuterRef, Exists
 
 from core.constants import RecipeConstants
+from core.models import UserRecipeBaseModel
 
-User = get_user_model()
+
+class RecipeQuerySet(models.QuerySet):
+    def get_recipe_filters(self, user):
+        return self.annotate(
+            is_favorited=Exists(Favorite.objects.filter(
+                user_id=user.id,
+                recipe__id=OuterRef('pk')
+            )),
+            is_in_shopping_cart=Exists(ShoppingCart.objects.filter(
+                user_id=user.id,
+                recipe__id=OuterRef('pk')
+            ))
+        )
 
 
 class Tag(models.Model, RecipeConstants):
     name = models.CharField(
         'Название тэга',
-        max_length=RecipeConstants.TAG_NAME_LENGTH,
+        max_length=RecipeConstants.MAX_STR_LENGTH,
         unique=True,
-        blank=False,
-        null=False,
         help_text='Не более двухсот символов.'
     )
-    color = models.CharField(
+    color = ColorField(
         'Цвет тэга',
-        max_length=RecipeConstants.TAG_COLOR_LENGTH,
         unique=True,
-        blank=False,
-        null=False,
         help_text='Цвет тэга в формате HEX, например: #FF0000.',
     )
     slug = models.SlugField(
         'Слаг',
-        max_length=RecipeConstants.TAG_SLUG_LENGTH,
+        max_length=RecipeConstants.MAX_STR_LENGTH,
         unique=True,
-        blank=False,
-        null=False,
         help_text='Транслитерированное название тэга.'
                   'Помимо латиницы доступен символ "-".',
-        validators=[
-            RegexValidator(
-                regex=r'[\w-]+$',
-                message='Слаг содержит недопустимые символы.'
-
-            )
-        ]
     )
 
     class Meta:
@@ -64,29 +64,29 @@ class Recipe(models.Model):
     image = models.ImageField(
         'Изображение',
         upload_to='recipes/',
-        blank=True
     )
     name = models.CharField(
         'Название рецепта',
-        max_length=RecipeConstants.RECIPE_NAME_LENGTH,
-        blank=False,
-        null=False
+        max_length=RecipeConstants.MAX_STR_LENGTH,
     )
     text = models.CharField(
         'Описание рецепта',
         max_length=RecipeConstants.RECIPE_TEXT_LENGTH,
-        blank=False,
-        null=False
+    #? В ТЗ нет указания о длине текста, поставил примерное число.
+    # Для чарфилда обязательно поставить какое-то.
     )
     cooking_time = models.PositiveSmallIntegerField(
         'Время приготовления в минутах',
-        blank=False,
-        null=False,
         validators=[
             MinValueValidator(
-                RecipeConstants.COOKING_TIME_MIN_VALUE_VALIDATOR_VALUE,
+                RecipeConstants.MIN_VALUE,
                 'Время приготовления должно быть '
                 'не менее одной минуты.'
+            ),
+            MaxValueValidator(
+                RecipeConstants.COOKING_TIME_MAX_VALUE_VALIDATOR_VALUE,
+                'Время приготовления должно быть '
+                'не более 360 минут.'
             )],
     )
     author = models.ForeignKey(
@@ -96,6 +96,8 @@ class Recipe(models.Model):
     )
     pub_date = models.DateTimeField('Дата публикации',
                                     auto_now_add=True)
+
+    objects = RecipeQuerySet.as_manager()
 
     class Meta:
         verbose_name = 'Рецепт'
@@ -110,12 +112,12 @@ class Recipe(models.Model):
 class Ingredient(models.Model):
     name = models.CharField(
         'Название ингредиента',
-        max_length=RecipeConstants.INGREDIENT_NAME_LENGTH,
+        max_length=RecipeConstants.MAX_STR_LENGTH,
         help_text='Не более двухсот символов.'
     )
     measurement_unit = models.CharField(
         'Единица измерения',
-        max_length=RecipeConstants.INGREDIENT_MEAUSEREMENT_UNIT_LENGTH,
+        max_length=RecipeConstants.MAX_STR_LENGTH,
         help_text='Не более двухсот символов.'
     )
 
@@ -123,63 +125,34 @@ class Ingredient(models.Model):
         verbose_name = 'Ингредиент'
         verbose_name_plural = 'Ингредиенты'
         default_related_name = '%(class)ss'
+        constraints = [
+            models.UniqueConstraint(
+                fields=('name', 'measurement_unit'),
+                name='%(app_label)s_%(class)s уже существует.',
+            )
+        ]
 
     def __str__(self):
         return self.name[:RecipeConstants.STR_RETURN_VALUE]
 
 
-class Favorite(models.Model):
-    user = models.ForeignKey(
-        User,
-        on_delete=models.CASCADE,
-        verbose_name='Пользователь',
-        related_name='favorites',
-    )
-    recipe = models.ForeignKey(
-        'Recipe',
-        on_delete=models.CASCADE,
-        verbose_name='Рецепт',
-        related_name='in_favorites'
-    )
+class Favorite(UserRecipeBaseModel):
+    pass
 
-    class Meta:
+    class Meta(UserRecipeBaseModel.Meta):
         verbose_name = 'Избранное'
         verbose_name_plural = verbose_name
-        constraints = [
-            models.UniqueConstraint(
-                fields=('user', 'recipe'),
-                name='%(app_label)s_%(class)s уже добавлен в избранное.',
-            )
-        ]
 
     def __str__(self):
         return f'{self.user.username} добавил {self.recipe.name} в избранное.'
 
 
-class ShoppingCart(models.Model):
-    user = models.ForeignKey(
-        User,
-        on_delete=models.CASCADE,
-        verbose_name='Пользователь',
-        related_name='shoppingcarts',
-    )
-    recipe = models.ForeignKey(
-        'Recipe',
-        on_delete=models.CASCADE,
-        verbose_name='Рецепт',
-        related_name='carts'
-    )
+class ShoppingCart(UserRecipeBaseModel):
+    pass
 
-    class Meta:
+    class Meta(UserRecipeBaseModel.Meta):
         verbose_name = 'Список покупок'
-        verbose_name_plural = verbose_name
-        constraints = [
-            models.UniqueConstraint(
-                fields=('user', 'recipe'),
-                name='\n%(app_label)s_%(class)s уже добавлен'
-                     ' в список покупок.',
-            )
-        ]
+        verbose_name_plural = 'Списки покупок'
 
     def __str__(self):
         return (f'{self.user.username} добавил'
@@ -201,9 +174,15 @@ class RecipeIngredient(models.Model):
         'Количество ингредиентов',
         validators=[
             MinValueValidator(
-                1, 'Количество ингредиентов должно быть'
-                   ' не менее одного.'
-            )
+                RecipeConstants.MIN_VALUE,
+                'Количество ингредиентов должно быть'
+                ' не менее одного.'
+            ),
+            MaxValueValidator(
+                RecipeConstants.MAXIMUM_AMOUNT_REQUIRED,
+                'Количество ингредиентов должно быть'
+                ' не более 50.'
+            ),
         ]
     )
 
@@ -232,3 +211,6 @@ class TagRecipe(models.Model):
         default_related_name = '%(class)ss'
         verbose_name = 'Тэг рецепта'
         verbose_name_plural = 'Тэги рецепта'
+
+    def __str__(self):
+        return self.tag.name[:RecipeConstants.STR_RETURN_VALUE]
