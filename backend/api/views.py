@@ -1,4 +1,3 @@
-from django.contrib.auth import get_user_model
 from django_filters.rest_framework import DjangoFilterBackend
 from djoser.views import UserViewSet as DjoserUserViewSet
 from rest_framework.decorators import action
@@ -19,9 +18,7 @@ from api.serializers import (IngredientSerializer,
 from core.services import _create_related_object, _delete_related_object
 from core.utils import draw_pdf_report
 from recipes.models import Ingredient, Recipe, Tag, Favorite, ShoppingCart
-from users.models import Subscription
-
-User = get_user_model()
+from users.models import Subscription, User
 
 
 class IngredientViewSet(ReadOnlyModelViewSet):
@@ -39,7 +36,12 @@ class RecipeViewSet(ModelViewSet):
     Помимо стандартных методов, реализованы action
     для работы с избранными рецептами пользователя."""
 
-    queryset = Recipe.objects.select_related('author')
+    queryset = Recipe.objects.select_related(
+        'author'
+    ).prefetch_related(
+        'tags',
+        'ingredients'
+    )
     http_method_names = ('get', 'post', 'patch', 'delete')
     filter_backends = (DjangoFilterBackend,)
     filterset_class = RecipeFilter
@@ -51,12 +53,9 @@ class RecipeViewSet(ModelViewSet):
         return RecipePostSerializer
 
     @action(detail=True,
-            permission_classes=(IsAuthenticated,))
+            permission_classes=(IsAuthenticated,), methods=('post',))
     def favorite(self, request, pk):
         """Добавление и удаление рецептов из избранного."""
-
-    @favorite.mapping.post
-    def make_recipe_favorite(self, request, pk):
         return _create_related_object(pk, request, FavoriteSerializer)
 
     @favorite.mapping.delete
@@ -64,12 +63,9 @@ class RecipeViewSet(ModelViewSet):
         return _delete_related_object(pk, request, Favorite)
 
     @action(detail=True,
-            permission_classes=(IsAuthenticated,))
+            permission_classes=(IsAuthenticated,), methods=('post',))
     def shopping_cart(self, request, pk):
         """Добавление и удаление рецептов из списка покупок."""
-
-    @shopping_cart.mapping.post
-    def add_to_shopping_cart(self, request, pk):
         return _create_related_object(pk, request, ShoppingCartSerializer)
 
     @shopping_cart.mapping.delete
@@ -95,15 +91,9 @@ class UserViewSet(DjoserUserViewSet):
     """Вьюсет для работы с подписками. Наследуемся от
     вьюсета Djoser'а, чтобы соблюсти логику путей в API."""
 
-    def get_serializer_class(self):
-        if self.action == 'subscribe':
-            return GetRemoveSubscriptionSerializer
-        elif self.action == 'subscriptions':
-            return SubscriptionsListSerializer
-        return super().get_serializer_class()
-
     @action(methods=('get',), detail=False,
-            permission_classes=(IsAuthenticated,))
+            permission_classes=(IsAuthenticated,),
+            serializer_class=SubscriptionsListSerializer)
     def subscriptions(self, request):
         queryset = self.filter_queryset(
             User.objects.filter(following__user=self.request.user)
@@ -116,17 +106,15 @@ class UserViewSet(DjoserUserViewSet):
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
 
-    @action(detail=True, permission_classes=(IsAuthenticated,))
-    def subscribe(self, request, pk):
+    @action(detail=True, permission_classes=(IsAuthenticated,),
+            methods=('post',))
+    def subscribe(self, request, id):
         """Action для работы с подписками пользователей."""
-
-    @subscribe.mapping.post
-    def subscribe_to_user(self, request, id):
         return _create_related_object(id, request,
                                       GetRemoveSubscriptionSerializer,
                                       subscription_arg=True)
 
     @subscribe.mapping.delete
-    def unsubscribe_from_user(self, request, id):
+    def unsubscribe(self, request, id):
         return _delete_related_object(id, request,
                                       Subscription, subscription_arg=True)
