@@ -27,4 +27,3 @@ class Command(BaseCommand):
         except IntegrityError:
             self.stdout.write(self.style.ERROR(f'Tags located in {file}'
                                                f'already exist'))
-

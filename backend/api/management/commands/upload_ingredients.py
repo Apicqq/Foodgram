@@ -20,7 +20,7 @@ class Command(BaseCommand):
                     measurement_unit=ingredient['measurement_unit'],
                 )
             self.stdout.write(
-                    self.style.SUCCESS('Data was successfully imported'))
+                self.style.SUCCESS('Data was successfully imported'))
         except FileNotFoundError:
             self.stdout.write(self.style.ERROR(f'File "{file}" not found'))
         except IntegrityError:
