@@ -48,19 +48,16 @@ class RecipeViewSet(ModelViewSet):
     permission_classes = (IsAuthorOrReadOnly,)
 
     def get_queryset(self):
-        if self.request.user.is_anonymous:
-            return Recipe.objects.select_related(
-                'author'
-            ).prefetch_related(
-                'tags',
-                'ingredients'
-            )
-        return Recipe.objects.select_related(
+        queryset = Recipe.objects.select_related(
             'author'
         ).prefetch_related(
             'tags',
             'ingredients'
-        ).get_recipe_filters(self.request.user)
+        )
+        return (
+            queryset.get_recipe_filters(self.request.user)
+            if self.request.user.is_authenticated else queryset
+        )
 
     def get_serializer_class(self):
         if self.action in ('list', 'retrieve'):
@@ -101,6 +98,8 @@ class RecipeViewSet(ModelViewSet):
                 ingredient_amount=Sum(
                     'amount'
                 )
+            ).order_by(
+                'ingredient__name'
             )
         )
         return draw_pdf_report(ingredients)
@@ -119,7 +118,10 @@ class UserViewSet(DjoserUserViewSet):
     """Вьюсет для работы с подписками. Наследуемся от
     вьюсета Djoser'а, чтобы соблюсти логику путей в API."""
 
-# Для экшена 'me' у меня установлен дефолтный пермишен в настройках Djoser.
+    def get_permissions(self):
+        if self.action == 'me':
+            return (IsAuthenticated(),)
+        return super().get_permissions()
 
     @action(methods=('get',), detail=False,
             permission_classes=(IsAuthenticated,),
