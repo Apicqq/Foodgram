@@ -18,7 +18,7 @@ class RecipeQuerySet(models.QuerySet):
                 user_id=user.id,
                 recipe__id=OuterRef('pk')
             ))
-        ).order_by('-id')
+        ).order_by('-pub_date')
 
 
 class Tag(models.Model, RecipeConstants):
