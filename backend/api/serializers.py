@@ -1,4 +1,3 @@
-from django.core.validators import MinValueValidator, MaxValueValidator
 from drf_extra_fields.fields import Base64ImageField
 from rest_framework.exceptions import ValidationError
 from rest_framework.fields import (CharField,
@@ -9,7 +8,7 @@ from rest_framework.relations import PrimaryKeyRelatedField
 from rest_framework.serializers import ModelSerializer, SerializerMethodField
 from rest_framework.validators import UniqueTogetherValidator
 
-from core.constants import APIConstants
+from core.constants import RecipeConstants
 from core.services import pass_ingredients
 from recipes.models import (
     Ingredient,
@@ -77,16 +76,16 @@ class IngredientPostSerializer(ModelSerializer):
     """ Сериализатор для работы с ингредиентами в POST-запросах."""
 
     id = PrimaryKeyRelatedField(queryset=Ingredient.objects.all())
-    amount = IntegerField(validators=[
-        MinValueValidator(
-            APIConstants.API_MIN_VALUE,
-            APIConstants.API_MIN_VALUE_ERROR_MESSAGE_INGREDIENTS
-        ),
-        MaxValueValidator(
-            APIConstants.API_MAX_VALUE_INGREDIENTS,
-            APIConstants.API_MAX_VALUE_ERROR_MESSAGE_INGREDIENTS
-        ),
-    ])
+    amount = IntegerField(
+        min_value=RecipeConstants.MIN_VALUE,
+        max_value=RecipeConstants.MAXIMUM_AMOUNT_ALLOWED,
+        error_messages={
+            'min_value': f'Убедитесь, что значение больше либо'
+                         f' равно {RecipeConstants.MIN_VALUE}',
+            'max_value': f'Убедитесь, что значение меньше либо'
+                         f' равно {RecipeConstants.MAXIMUM_AMOUNT_ALLOWED}',
+        }
+    )
 
     class Meta:
         model = RecipeIngredient
@@ -118,14 +117,16 @@ class RecipePostSerializer(ModelSerializer):
     tags = PrimaryKeyRelatedField(many=True,
                                   queryset=Tag.objects.all())
     image = Base64ImageField(required=True)
-    cooking_time = IntegerField(validators=[
-        MinValueValidator(
-            APIConstants.API_MIN_VALUE,
-            APIConstants.API_MIN_VALUE_ERROR_MESSAGE_INGREDIENTS),
-        MaxValueValidator(
-            APIConstants.API_MAX_VALUE_COOKING_TIME,
-            APIConstants.API_MAX_VALUE_ERROR_COOKING_TIME_MESSAGE),
-    ])
+    cooking_time = IntegerField(
+        min_value=RecipeConstants.MIN_VALUE,
+        max_value=RecipeConstants.MAXIMUM_AMOUNT_ALLOWED,
+        error_messages={
+            'min_value': f'Убедитесь, что значение больше либо'
+                         f' равно {RecipeConstants.MIN_VALUE}',
+            'max_value': f'Убедитесь, что значение меньше либо'
+                         f' равно {RecipeConstants.MAX_COOKING_TIME}',
+        }
+    )
 
     class Meta:
         model = Recipe
@@ -133,18 +134,23 @@ class RecipePostSerializer(ModelSerializer):
                   'text', 'cooking_time')
 
     def validate(self, data):
-        ingredients_list, tags_list = (
+        tags = data.get('tags')
+        ingredients_list = (
             [ingredient.get('id') for ingredient in data.get('ingredients')],
-            [tag for tag in data.get('tags')]
         )
-        if not ingredients_list or not tags_list:
-            raise ValidationError('Вы не добавили ингредиенты '
-                                  'и/или тэги.')
-        if (len(set(ingredients_list)) != len(ingredients_list)
-                or len(set(tags_list)) != len(tags_list)):
+        if not ingredients_list:
+            raise ValidationError('Вы не добавили ингредиенты в рецепт.')
+        if not tags:
+            raise ValidationError('Вы не добавили тэги в рецепт.')
+        if len(set(ingredients_list)) != len(ingredients_list):
             raise ValidationError(
                 'Проверьте корректность данных. В вашем запросе есть'
-                ' дубликаты ингредиентов и/или тэгов.'
+                ' дубликаты ингредиентов.'
+            )
+        if len(set(tags)) != len(tags):
+            raise ValidationError(
+                'Проверьте корректность данных. В вашем запросе есть'
+                ' дубликаты тэгов.'
             )
         return data
 
@@ -177,7 +183,8 @@ class RecipePostSerializer(ModelSerializer):
 
 
 class FavoriteCartsBaseSerializer(ModelSerializer):
-    unique_together = ('user', 'recipe')
+    class Meta:
+        fields = ('recipe', 'user')
 
     def to_representation(self, instance):
         return RecipeMinifiedSerializer(
@@ -189,11 +196,11 @@ class FavoriteCartsBaseSerializer(ModelSerializer):
         if self.Meta.model.objects.filter(
                 user=self.context.get('request').user,
                 recipe=data.get('recipe')).exists():
-            raise ValidationError('Такая связь уже существует.')
+            raise ValidationError(
+                f'Вы уже добавили этот рецепт в'
+                f' {self.Meta.model._meta.verbose_name.lower()}'
+            )
         return data
-
-    class Meta:
-        fields = ('recipe', 'user')
 
 
 class FavoriteSerializer(FavoriteCartsBaseSerializer):
@@ -217,7 +224,6 @@ class RecipeMinifiedSerializer(ModelSerializer):
     class Meta:
         model = Recipe
         fields = ('id', 'name', 'image', 'cooking_time')
-        read_only_fields = ('__all__',)
 
 
 class SubscriptionsListSerializer(UserGetSerializer):
@@ -246,8 +252,11 @@ class SubscriptionsListSerializer(UserGetSerializer):
         if request:
             recipes_limit = request.query_params.get('recipes_limit')
         recipes = obj.recipes.all()
-        if recipes_limit and recipes_limit.isnumeric():
-            recipes = recipes[:int(recipes_limit)]
+        if recipes_limit:
+            try:
+                recipes = recipes[:int(recipes_limit)]
+            except ValueError:
+                recipes = recipes
         return RecipeMinifiedSerializer(recipes, many=True,
                                         context=self.context).data
 
@@ -258,7 +267,6 @@ class GetRemoveSubscriptionSerializer(ModelSerializer):
     class Meta:
         model = Subscription
         fields = ('author', 'user')
-        read_only_fields = ('__all__',)
 
         validators = [
             UniqueTogetherValidator(
