@@ -108,18 +108,6 @@ class RecipeGetSerializer(ModelSerializer):
                   'is_in_shopping_cart', 'is_favorited',
                   'name', 'image', 'text', 'cooking_time')
 
-    def _is_favorited(self, obj):
-        request = self.context.get('request')
-        return (request
-                and request.user.is_authenticated
-                and request.user.favorites.filter(recipe=obj).exists())
-
-    def _is_in_shopping_cart(self, obj):
-        request = self.context.get('request')
-        return (request
-                and request.user.is_authenticated
-                and request.user.shoppingcarts.filter(recipe=obj).exists())
-
 
 class RecipePostSerializer(ModelSerializer):
     """ Сериализатор для работы с рецептами в POST-запросах."""
