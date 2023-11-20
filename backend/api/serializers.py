@@ -1,8 +1,10 @@
 from django.core.validators import MinValueValidator, MaxValueValidator
 from drf_extra_fields.fields import Base64ImageField
 from rest_framework.exceptions import ValidationError
-from rest_framework.fields import CharField, IntegerField, ReadOnlyField, \
-    BooleanField
+from rest_framework.fields import (CharField,
+                                   IntegerField,
+                                   ReadOnlyField,
+                                   BooleanField)
 from rest_framework.relations import PrimaryKeyRelatedField
 from rest_framework.serializers import ModelSerializer, SerializerMethodField
 from rest_framework.validators import UniqueTogetherValidator
