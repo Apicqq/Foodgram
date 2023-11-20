@@ -45,7 +45,7 @@ class RecipeAdmin(admin.ModelAdmin):
 
     @admin.display(description=RecipeConstants.FAVORITES_DESCRIPTION)
     def get_favorites(self, obj):
-        return obj.is_favorited.count()
+        return obj.favorites.count()
 
     @admin.display(description=RecipeConstants.IMAGE_DESCRIPTION)
     def get_image(self, obj):
