@@ -18,7 +18,7 @@ class RecipeQuerySet(models.QuerySet):
                 user_id=user.id,
                 recipe__id=OuterRef('pk')
             ))
-        )
+        ).order_by('-id')
 
 
 class Tag(models.Model, RecipeConstants):
@@ -69,24 +69,21 @@ class Recipe(models.Model):
         'Название рецепта',
         max_length=RecipeConstants.MAX_STR_LENGTH,
     )
-    text = models.CharField(
+    text = models.TextField(
         'Описание рецепта',
-        max_length=RecipeConstants.RECIPE_TEXT_LENGTH,
-        # В ТЗ нет указания о длине текста, поставил примерное число.
-        # Для чарфилда обязательно поставить какое-то.
     )
     cooking_time = models.PositiveSmallIntegerField(
         'Время приготовления в минутах',
         validators=[
             MinValueValidator(
                 RecipeConstants.MIN_VALUE,
-                'Время приготовления должно быть '
-                'не менее одной минуты.'
+                f'Время приготовления должно быть '
+                f'не менее {RecipeConstants.MIN_VALUE} минуты.'
             ),
             MaxValueValidator(
-                RecipeConstants.COOKING_TIME_MAX_VALUE_VALIDATOR_VALUE,
-                'Время приготовления должно быть '
-                'не более 360 минут.'
+                RecipeConstants.MAX_COOKING_TIME,
+                f'Время приготовления должно быть '
+                f'не более {RecipeConstants.MAX_COOKING_TIME} минут.'
             )],
     )
     author = models.ForeignKey(
@@ -137,7 +134,6 @@ class Ingredient(models.Model):
 
 
 class Favorite(UserRecipeBaseModel):
-    pass
 
     class Meta(UserRecipeBaseModel.Meta):
         verbose_name = 'Избранное'
@@ -148,7 +144,6 @@ class Favorite(UserRecipeBaseModel):
 
 
 class ShoppingCart(UserRecipeBaseModel):
-    pass
 
     class Meta(UserRecipeBaseModel.Meta):
         verbose_name = 'Список покупок'
@@ -176,12 +171,12 @@ class RecipeIngredient(models.Model):
             MinValueValidator(
                 RecipeConstants.MIN_VALUE,
                 'Количество ингредиентов должно быть'
-                ' не менее одного.'
+                f' не менее {RecipeConstants.MIN_VALUE}.'
             ),
             MaxValueValidator(
-                RecipeConstants.MAXIMUM_AMOUNT_REQUIRED,
+                RecipeConstants.MAXIMUM_AMOUNT_ALLOWED,
                 'Количество ингредиентов должно быть'
-                ' не более 50.'
+                f' не более {RecipeConstants.MAXIMUM_AMOUNT_ALLOWED}.'
             ),
         ]
     )

@@ -13,7 +13,7 @@ class User(AbstractUser):
 
     username = models.CharField(
         'Имя пользователя',
-        max_length=UserConstants.USER_USERNAME_LENGTH,
+        max_length=UserConstants.USER_CREDENTIALS_MAX_LENGTH,
         unique=True,
         validators=(
             RegexValidator(
@@ -34,12 +34,12 @@ class User(AbstractUser):
         }
     )
     first_name = models.CharField(
-        max_length=UserConstants.USER_FIRST_NAME_LENGTH,
+        max_length=UserConstants.USER_CREDENTIALS_MAX_LENGTH,
         verbose_name='Имя',
         help_text='Имя',
     )
     last_name = models.CharField(
-        max_length=UserConstants.USER_LAST_NAME_LENGTH,
+        max_length=UserConstants.USER_CREDENTIALS_MAX_LENGTH,
         verbose_name='Фамилия',
         help_text='Фамилия',
     )
