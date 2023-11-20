@@ -31,7 +31,8 @@ def _create_related_object(pk, request, serializer_class):
         data={
             'user': request.user.id,
             'recipe': pk},
-        context={'request': request})
+        context={'request': request}
+    )
     serializer.is_valid(raise_exception=True)
     serializer.save()
     return Response(serializer.data, status=status.HTTP_201_CREATED)
