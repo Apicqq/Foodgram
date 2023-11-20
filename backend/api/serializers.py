@@ -136,7 +136,8 @@ class RecipePostSerializer(ModelSerializer):
     def validate(self, data):
         tags = data.get('tags')
         ingredients_list = (
-        [ingredient.get('id') for ingredient in data.get('ingredients')])
+            [ingredient.get('id') for ingredient in data.get('ingredients')]
+        )
 
         if not ingredients_list:
             raise ValidationError('Вы не добавили ингредиенты в рецепт.')
