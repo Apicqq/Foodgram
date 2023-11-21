@@ -20,7 +20,7 @@ services:
       - static:/backend_static
       - media:/app/media
   frontend:
-    image: apicqq/foodgram_frontend:latest
+    image: eugenesal/infra-frontend:latest
     volumes:
       - ../frontend/:/app/result_build/
   nginx:
