@@ -24,7 +24,7 @@ class UserAdmin(BaseUserAdmin):
 
     @admin.display(description=UserConstants.SUBSCRIBERS_AMOUNT)
     def get_subscribers(self, obj):
-        return obj.follower.count()
+        return obj.following.count()
 
 
 @admin.register(Subscription)
