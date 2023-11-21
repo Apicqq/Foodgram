@@ -25,6 +25,7 @@ services:
       - ../frontend/:/app/result_build/
   nginx:
     image: apicqq/foodgram_gateway:latest
+    env_file: .env
     depends_on:
       - backend
       - db
@@ -33,5 +34,5 @@ services:
     volumes:
       - ../frontend/build:/usr/share/nginx/html/
       - ../docs/:/usr/share/nginx/html/api/docs/
-      - static:/static/
-      - media:/media/
+      - static:/static
+      - media:/media
