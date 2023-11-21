@@ -99,6 +99,6 @@ server {
 
 ## Автор проекта
 
-[Никита Смыков](https://github.com/Apicqq)!
+[Никита Смыков](https://github.com/Apicqq)
 
 
