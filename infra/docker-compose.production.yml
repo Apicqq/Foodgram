@@ -34,4 +34,4 @@ services:
       - ../frontend/build:/usr/share/nginx/html/
       - ../docs/:/usr/share/nginx/html/api/docs/
       - static:/static/
-      - media:/var/html/media/
+      - media:/media/
