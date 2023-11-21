@@ -138,20 +138,23 @@ class RecipePostSerializer(ModelSerializer):
         ingredients_list = (
             [ingredient.get('id') for ingredient in data.get('ingredients')]
         )
-
         if not ingredients_list:
-            raise ValidationError('Вы не добавили ингредиенты в рецепт.')
+            raise ValidationError(
+                {'ingredients': 'Вы не добавили ингредиенты в рецепт.'}
+            )
         if not tags:
-            raise ValidationError('Вы не добавили тэги в рецепт.')
+            raise ValidationError(
+                {'tags': 'Вы не добавили тэги в рецепт.'}
+            )
         if len(set(ingredients_list)) != len(ingredients_list):
             raise ValidationError(
-                'Проверьте корректность данных. В вашем запросе есть'
-                ' дубликаты ингредиентов.'
+                {'ingredients': 'Проверьте корректность данных. В вашем'
+                                ' запросе есть дубликаты ингредиентов.'}
             )
         if len(set(tags)) != len(tags):
             raise ValidationError(
-                'Проверьте корректность данных. В вашем запросе есть'
-                ' дубликаты тэгов.'
+                {'tags': 'Проверьте корректность данных. В вашем'
+                         ' запросе есть дубликаты тэгов.'}
             )
         return data
 
@@ -257,7 +260,7 @@ class SubscriptionsListSerializer(UserGetSerializer):
             try:
                 recipes = recipes[:int(recipes_limit)]
             except ValueError:
-                recipes = recipes
+                pass
         return RecipeMinifiedSerializer(recipes, many=True,
                                         context=self.context).data
 
