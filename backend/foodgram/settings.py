@@ -1,12 +1,14 @@
 import os
 from pathlib import Path
 
+from django.core.management.utils import get_random_secret_key
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = os.getenv('SECRET_KEY',
-                       'django-insecure-h%#y6=n%3ze@(mth4p07)u)%tf$^g7+os)g9r!gr@b58zoqr+i')
+                       f'{get_random_secret_key()}')
 
-DEBUG = os.getenv('DEBUG_STATUS', 'False') == 'True'
+DEBUG = True
 
 ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '*').split(', ')
 
@@ -120,7 +122,6 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticatedOrReadOnly',
     ],
-
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework.authentication.TokenAuthentication',
     ],
