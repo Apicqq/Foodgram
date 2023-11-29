@@ -1,3 +1,4 @@
+from django.db.transaction import atomic
 from drf_extra_fields.fields import Base64ImageField
 from rest_framework.exceptions import ValidationError
 from rest_framework.fields import (CharField,
@@ -163,6 +164,7 @@ class RecipePostSerializer(ModelSerializer):
             raise ValidationError('Добавьте изображение.')
         return obj
 
+    @atomic
     def create(self, validated_data):
         ingredients = validated_data.pop('ingredients')
         tags = validated_data.pop('tags')
@@ -172,6 +174,7 @@ class RecipePostSerializer(ModelSerializer):
         pass_ingredients(ingredients, recipe)
         return recipe
 
+    @atomic
     def update(self, instance, validated_data):
         ingredients = validated_data.pop('ingredients')
         tags = validated_data.pop('tags')
