@@ -1,5 +1,7 @@
 from django.contrib import admin
 from django.contrib.auth.models import Group
+from django.core.exceptions import ValidationError
+from django.forms import models
 from django.utils.safestring import mark_safe
 from rest_framework.authtoken.models import TokenProxy
 
@@ -14,14 +16,31 @@ from .models import (Tag,
 admin.site.empty_value_display = RecipeConstants.ADMIN_EMPTY_VALUE
 
 
+class BaseIngredientTagFormSet(models.BaseInlineFormSet):
+
+    def is_valid(self):
+        return super().is_valid() and not any(bool(e) for e in self.errors)
+
+    def clean(self):
+        count = sum(1 for form in self.forms if
+                    form.cleaned_data and not form.cleaned_data.get('DELETE',
+                                                                    False))
+        if count < 1:
+            raise ValidationError(
+                'В рецепте должен быть хотя бы один {}.'.format(
+                    self.model._meta.verbose_name))
+
+
 class RecipeIngredientInline(admin.TabularInline):
     model = RecipeIngredient
     min_num = RecipeConstants.MIN_VALUE
+    formset = BaseIngredientTagFormSet
 
 
 class TagRecipeInLine(admin.TabularInline):
     model = TagRecipe
     min_num = RecipeConstants.MIN_VALUE
+    formset = BaseIngredientTagFormSet
 
 
 @admin.register(Tag)
